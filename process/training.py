@@ -15,6 +15,7 @@ import re
 
 gpu_info = subprocess.run(["nvidia-smi"])
 TOKEN = os.getenv("HF_TOKEN")
+HUB_MODEL_ID = "whisper-small-es"
 
 do_lower_case = False
 do_remove_punctuation = False
@@ -78,7 +79,7 @@ raw_datasets = IterableDatasetDict()
 
 raw_datasets["train"] = load_streaming_dataset("mozilla-foundation/common_voice_11_0", "es", split="train", use_auth_token=TOKEN)  # set split="train+validation" for low-resource
 raw_datasets["test"] = load_streaming_dataset("mozilla-foundation/common_voice_11_0", "es", split="test", use_auth_token=TOKEN)
-raw_datasets = raw_datasets.cast_column("audio", Audio(sampling_rate=16000))
+raw_datasets = raw_datasets.cast_column("audio", Audio(sampling_rate=16_000))
 
 
 processor = WhisperProcessor.from_pretrained("openai/whisper-small", language="Spanish", task="transcribe")
@@ -111,7 +112,7 @@ def prepare_dataset(batch):
 vectorized_datasets = raw_datasets.map(prepare_dataset, remove_columns=list(next(iter(raw_datasets.values())).features)).with_format("torch")
 
 vectorized_datasets["train"] = vectorized_datasets["train"].shuffle(
-    buffer_size=2500,
+    buffer_size=500,
     seed=0,
 )
 
@@ -167,11 +168,11 @@ model.config.use_cache = False
 
 training_args = Seq2SeqTrainingArguments(
     output_dir="./whisper-small-es",  # your repo name
-    per_device_train_batch_size=64,
+    per_device_train_batch_size=24,
     gradient_accumulation_steps=1,  # increase by 2x for every 2x decrease in batch size
     learning_rate=1e-5,
     warmup_steps=500,
-    max_steps=5000,
+    max_steps=3000,
     gradient_checkpointing=True,
     fp16=True,
     evaluation_strategy="steps",
@@ -185,7 +186,9 @@ training_args = Seq2SeqTrainingArguments(
     load_best_model_at_end=True,
     metric_for_best_model="wer",
     greater_is_better=False,
-    #push_to_hub=True,
+    push_to_hub=True,
+    hub_model_id=HUB_MODEL_ID,  # your repo name
+    hub_token=TOKEN
 )
 
 
@@ -205,6 +208,10 @@ processor.save_pretrained(training_args.output_dir)
 
 trainer.train()
 
+eval_result = trainer.evaluate(eval_dataset=vectorized_datasets["test"])
+
+# save best model, metrics and create model card
+trainer.create_model_card(model_name=HUB_MODEL_ID)
 
 kwargs = {
     "dataset_tags": "mozilla-foundation/common_voice_11_0",
