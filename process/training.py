@@ -1,6 +1,7 @@
 import torch
 from transformers import WhisperProcessor, WhisperForConditionalGeneration, Seq2SeqTrainingArguments,TrainerCallback,Seq2SeqTrainer
 from datasets import interleave_datasets, load_dataset, IterableDatasetDict, Audio
+from transformers.models.whisper.english_normalizer import BasicTextNormalizer
 from transformers.trainer_pt_utils import IterableDatasetShard
 from torch.utils.data import IterableDataset
 from typing import Any, Dict, List, Union
@@ -15,10 +16,7 @@ import re
 
 gpu_info = subprocess.run(["nvidia-smi"])
 TOKEN = os.getenv("HF_TOKEN")
-HUB_MODEL_ID = "whisper-small-es"
-
-do_lower_case = False
-do_remove_punctuation = False
+HUB_MODEL_ID = os.getenv("HF_HUB_MODEL_ID")
 
 @dataclass
 class DataCollatorSpeechSeq2SeqWithPadding:
@@ -81,38 +79,43 @@ raw_datasets["train"] = load_streaming_dataset("mozilla-foundation/common_voice_
 raw_datasets["test"] = load_streaming_dataset("mozilla-foundation/common_voice_11_0", "es", split="test", use_auth_token=TOKEN)
 raw_datasets = raw_datasets.cast_column("audio", Audio(sampling_rate=16_000))
 
-
+do_lower_case = True
+do_remove_punctuation = False
+normalizer = BasicTextNormalizer()
 processor = WhisperProcessor.from_pretrained("openai/whisper-small", language="Spanish", task="transcribe")
 
 logger.info(raw_datasets["train"].features)
 
-punctuation_to_remove = string.punctuation.replace("'", "")  # don't remove apostrophes
-punctuation_to_remove_regex = f"[{''.join(punctuation_to_remove)}]"
-if do_remove_punctuation:
-    print("Removing punctuation: ", punctuation_to_remove)
-
+#punctuation_to_remove = string.punctuation.replace("'", "")  # don't remove apostrophes
+#punctuation_to_remove_regex = f"[{''.join(punctuation_to_remove)}]"
+#if do_remove_punctuation:
+#    print("Removing punctuation: ", punctuation_to_remove)
 
 def prepare_dataset(batch):
-    # load and (possibly) resample audio datato 16kHz
+    # load and (possibly) resample audio data to 16kHz
     audio = batch["audio"]
+
     # compute log-Mel input features from input audio array 
     batch["input_features"] = processor.feature_extractor(audio["array"], sampling_rate=audio["sampling_rate"]).input_features[0]
     # compute input length of audio sample in seconds
     batch["input_length"] = len(audio["array"]) / audio["sampling_rate"]
+    
     # optional pre-processing steps
     transcription = batch["sentence"]
     if do_lower_case:
         transcription = transcription.lower()
     if do_remove_punctuation:
-        transcription = re.sub(punctuation_to_remove_regex, " ", transcription).strip()
+        transcription = normalizer(transcription).strip()
+    
     # encode target text to label ids
     batch["labels"] = processor.tokenizer(transcription).input_ids
     return batch
 
+
 vectorized_datasets = raw_datasets.map(prepare_dataset, remove_columns=list(next(iter(raw_datasets.values())).features)).with_format("torch")
 
 vectorized_datasets["train"] = vectorized_datasets["train"].shuffle(
-    buffer_size=500,
+    buffer_size=800,
     seed=0,
 )
 
@@ -142,24 +145,6 @@ def compute_metrics(pred):
     wer = 100 * metric.compute(predictions=pred_str, references=label_str)
     return {"wer": wer}
 
-do_normalize_eval = True
-
-def compute_metrics(pred):
-    pred_ids = pred.predictions
-    label_ids = pred.label_ids
-
-    # replace -100 with the pad_token_id
-    label_ids[label_ids == -100] = processor.tokenizer.pad_token_id
-
-    # we do not want to group tokens when computing the metrics
-    pred_str = processor.tokenizer.batch_decode(pred_ids, skip_special_tokens=True, normalize=do_normalize_eval)
-    label_str = processor.tokenizer.batch_decode(label_ids, skip_special_tokens=True, normalize=do_normalize_eval)
-
-    wer = 100 * metric.compute(predictions=pred_str, references=label_str)
-
-    return {"wer": wer}
-
-
 model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-small")
 
 model.config.forced_decoder_ids = None
@@ -168,18 +153,18 @@ model.config.use_cache = False
 
 training_args = Seq2SeqTrainingArguments(
     output_dir="./whisper-small-es",  # your repo name
-    per_device_train_batch_size=24,
+    per_device_train_batch_size=64,
     gradient_accumulation_steps=1,  # increase by 2x for every 2x decrease in batch size
     learning_rate=1e-5,
     warmup_steps=500,
-    max_steps=3000,
+    max_steps=6000,
     gradient_checkpointing=True,
     fp16=True,
     evaluation_strategy="steps",
-    per_device_eval_batch_size=8,
+    per_device_eval_batch_size=64,
     predict_with_generate=True,
     generation_max_length=225,
-    save_steps=1000,
+    save_steps=2000,
     eval_steps=1000,
     logging_steps=25,
     report_to=["tensorboard"],
@@ -190,7 +175,6 @@ training_args = Seq2SeqTrainingArguments(
     hub_model_id=HUB_MODEL_ID,  # your repo name
     hub_token=TOKEN
 )
-
 
 trainer = Seq2SeqTrainer(
     args=training_args,
@@ -207,17 +191,15 @@ model.save_pretrained(training_args.output_dir)
 processor.save_pretrained(training_args.output_dir)
 
 trainer.train()
-
-eval_result = trainer.evaluate(eval_dataset=vectorized_datasets["test"])
-
+#eval_result = trainer.evaluate(eval_dataset=vectorized_datasets["test"])
 # save best model, metrics and create model card
-trainer.create_model_card(model_name=HUB_MODEL_ID)
+#trainer.create_model_card(model_name=HUB_MODEL_ID)
 
 kwargs = {
     "dataset_tags": "mozilla-foundation/common_voice_11_0",
     "dataset": "Common Voice 11.0",  # a 'pretty' name for the training dataset
     "language": "es",
-    "model_name": "Whisper in Spanish - Rjac",  # a 'pretty' name for your model
+    "model_name": "Whisper Spanish - Rjac",  # a 'pretty' name for your model
     "finetuned_from": "openai/whisper-small",
     "tasks": "automatic-speech-recognition",
     "tags": "whisper-event",
