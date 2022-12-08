@@ -17,6 +17,8 @@ import re
 gpu_info = subprocess.run(["nvidia-smi"])
 TOKEN = os.getenv("HF_TOKEN")
 HUB_MODEL_ID = os.getenv("HF_HUB_MODEL_ID")
+PRETRAIN_MODEL_NAME=os.getenv("HF_PRETRAIN_MODEL_NAME")
+LANGUAGE=os.getenv("LANGUAGE")
 
 @dataclass
 class DataCollatorSpeechSeq2SeqWithPadding:
@@ -82,7 +84,7 @@ raw_datasets = raw_datasets.cast_column("audio", Audio(sampling_rate=16_000))
 do_lower_case = True
 do_remove_punctuation = False
 normalizer = BasicTextNormalizer()
-processor = WhisperProcessor.from_pretrained("openai/whisper-small", language="Spanish", task="transcribe")
+processor = WhisperProcessor.from_pretrained(PRETRAIN_MODEL_NAME, language=LANGUAGE, task="transcribe")
 
 logger.info(raw_datasets["train"].features)
 
@@ -145,17 +147,17 @@ def compute_metrics(pred):
     wer = 100 * metric.compute(predictions=pred_str, references=label_str)
     return {"wer": wer}
 
-model = WhisperForConditionalGeneration.from_pretrained("openai/whisper-small")
+model = WhisperForConditionalGeneration.from_pretrained(PRETRAIN_MODEL_NAME)
 
 model.config.forced_decoder_ids = None
 model.config.suppress_tokens = []
 model.config.use_cache = False
 
 training_args = Seq2SeqTrainingArguments(
-    output_dir="./whisper-small-es",  # your repo name
+    output_dir="./{}".format(HUB_MODEL_ID),  # your repo name
     per_device_train_batch_size=64,
     gradient_accumulation_steps=1,  # increase by 2x for every 2x decrease in batch size
-    learning_rate=1e-4,
+    learning_rate=1.5e-4,
     warmup_steps=500,
     max_steps=6000,
     gradient_checkpointing=True,
@@ -164,7 +166,7 @@ training_args = Seq2SeqTrainingArguments(
     per_device_eval_batch_size=64,
     predict_with_generate=True,
     generation_max_length=225,
-    save_steps=2000,
+    save_steps=4000,
     eval_steps=1000,
     logging_steps=25,
     report_to=["tensorboard"],
@@ -193,14 +195,14 @@ processor.save_pretrained(training_args.output_dir)
 trainer.train()
 #eval_result = trainer.evaluate(eval_dataset=vectorized_datasets["test"])
 # save best model, metrics and create model card
-#trainer.create_model_card(model_name=HUB_MODEL_ID)
+trainer.create_model_card(model_name=HUB_MODEL_ID)
 
 kwargs = {
     "dataset_tags": "mozilla-foundation/common_voice_11_0",
     "dataset": "Common Voice 11.0",  # a 'pretty' name for the training dataset
     "language": "es",
-    "model_name": "Whisper Spanish - Rjac",  # a 'pretty' name for your model
-    "finetuned_from": "openai/whisper-small",
+    "model_name": "Whisper tiny Spanish - Rjac",  # a 'pretty' name for your model
+    "finetuned_from": "openai/whisper-tiny",
     "tasks": "automatic-speech-recognition",
     "tags": "whisper-event",
 }
