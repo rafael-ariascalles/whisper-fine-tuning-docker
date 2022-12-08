@@ -152,6 +152,15 @@ model = WhisperForConditionalGeneration.from_pretrained(PRETRAIN_MODEL_NAME)
 model.config.forced_decoder_ids = None
 model.config.suppress_tokens = []
 model.config.use_cache = False
+model.config.dropout = 0.15
+model.config.attention_dropout = 0.05
+
+num_freezed_params = 180
+for i,(name, param) in enumerate(model.named_parameters()):
+    if i < num_freezed_params:
+        param.requires_grad = False
+
+logging.info("Non-freeze layers {} of {}".format(i-num_freezed_params,i))
 
 training_args = Seq2SeqTrainingArguments(
     output_dir="./{}".format(HUB_MODEL_ID),  # your repo name
