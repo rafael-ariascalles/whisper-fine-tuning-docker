@@ -155,7 +155,7 @@ model.config.use_cache = False
 model.config.dropout = 0.15
 model.config.attention_dropout = 0.05
 
-num_freezed_params = 180
+num_freezed_params = 100
 for i,(name, param) in enumerate(model.named_parameters()):
     if i < num_freezed_params:
         param.requires_grad = False
