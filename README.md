@@ -11,5 +11,6 @@ sudo docker run -it --rm --gpus all hf python test.py
 
 ```bash
 sudo docker run --gpus all --env-file .env -it --rm -d -name trainer hf python training.py
+sudo docker run --gpus all --env-file .env -it --rm -d -name trainer hf python run_training.py experiment/whisper-small.yaml
 ```
 
