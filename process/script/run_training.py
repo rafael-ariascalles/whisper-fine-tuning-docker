@@ -57,7 +57,7 @@ check_min_version("4.25.0.dev0")
 require_version("datasets>=1.18.2", "To fix: pip install -r examples/pytorch/speech-recognition/requirements.txt")
 
 logger = logging.getLogger(__name__)
-TOKEN = os.getenv("TOKEN", None)
+TOKEN = os.getenv("HF_TOKEN", None)
 
 @dataclass
 class ModelArguments:
@@ -297,13 +297,15 @@ def main():
         model_args, data_args, training_args = parser.parse_json_file(json_file=os.path.abspath(sys.argv[1]))
     elif len(sys.argv) == 2 and sys.argv[1].endswith(".yaml"):
         # If we pass only one argument to the script and it's the path to a yaml file,
-        model_args, data_args, training_args = parser.parse_yaml_file(json_file=os.path.abspath(sys.argv[1]))
+        model_args, data_args, training_args = parser.parse_yaml_file(yaml_file=os.path.abspath(sys.argv[1]))
     else:
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
+
+    training_args.hub_token = TOKEN
     # Sending telemetry. Tracking the example usage helps us better allocate resources to maintain them. The
     # information sent is the one passed as arguments along with your Python/PyTorch versions.
-    send_example_telemetry("run_speech_recognition_seq2seq_streaming", model_args, data_args)
+    #send_example_telemetry("run_speech_recognition_seq2seq_streaming", model_args, data_args)
 
     # 2. Setup logging
     logging.basicConfig(
@@ -358,7 +360,7 @@ def main():
             data_args.dataset_name,
             data_args.dataset_config_name,
             split=data_args.train_split_name,
-            use_auth_token=TOKEN if model_args.use_auth_token else None,
+            use_auth_token=training_args.hub_token if model_args.use_auth_token else None,
             streaming=data_args.streaming,
         )
 
@@ -367,7 +369,7 @@ def main():
             data_args.dataset_name,
             data_args.dataset_config_name,
             split=data_args.eval_split_name,
-            use_auth_token=TOKEN if model_args.use_auth_token else None,
+            use_auth_token=training_args.hub_token if model_args.use_auth_token else None,
             streaming=data_args.streaming,
         )
 
@@ -397,7 +399,7 @@ def main():
         model_args.config_name if model_args.config_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
-        use_auth_token=TOKEN if model_args.use_auth_token else None,
+        use_auth_token=training_args.hub_token if model_args.use_auth_token else None,
     )
 
     config.update({"forced_decoder_ids": model_args.forced_decoder_ids, "suppress_tokens": model_args.suppress_tokens})
@@ -412,21 +414,21 @@ def main():
         model_args.feature_extractor_name if model_args.feature_extractor_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
-        use_auth_token=TOKEN if model_args.use_auth_token else None,
+        use_auth_token=training_args.hub_token if model_args.use_auth_token else None,
     )
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
         use_fast=model_args.use_fast_tokenizer,
         revision=model_args.model_revision,
-        use_auth_token=TOKEN if model_args.use_auth_token else None,
+        use_auth_token=training_args.hub_token if model_args.use_auth_token else None,
     )
     model = AutoModelForSpeechSeq2Seq.from_pretrained(
         model_args.model_name_or_path,
         config=config,
         cache_dir=model_args.cache_dir,
         revision=model_args.model_revision,
-        use_auth_token=TOKEN if model_args.use_auth_token else None,
+        use_auth_token=training_args.hub_token if model_args.use_auth_token else None,
     )
 
     if model.config.decoder_start_token_id is None:
