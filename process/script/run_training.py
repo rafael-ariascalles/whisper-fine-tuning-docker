@@ -59,7 +59,27 @@ check_min_version("4.25.0.dev0")
 require_version("datasets>=1.18.2", "To fix: pip install -r examples/pytorch/speech-recognition/requirements.txt")
 
 logger = logging.getLogger(__name__)
-TOKEN = os.getenv("HF_TOKEN", None)
+
+def load_maybe_streaming_dataset(dataset_name, dataset_config_name, split="train", streaming=False, **kwargs):
+    """
+    Utility function to load a dataset in streaming mode. For datasets with multiple splits,
+    each split is loaded individually and then splits combined by taking alternating examples from
+    each (interleaving).
+    """
+    if "+" in split:
+        # load multiple splits separated by the `+` symbol with streaming mode
+        dataset_splits = [
+            load_dataset(dataset_name, dataset_config_name, split=split_name, streaming=streaming, **kwargs)
+            for split_name in split.split("+")
+        ]
+        # interleave multiple splits to form one dataset
+        interleaved_dataset = interleave_datasets(dataset_splits)
+        return interleaved_dataset
+    else:
+        # load a single split *with* streaming mode
+        dataset = load_dataset(dataset_name, dataset_config_name, split=split, streaming=streaming, **kwargs)
+        return dataset
+
 
 def main():
     # 1. Parse input arguments
@@ -78,8 +98,8 @@ def main():
         model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
 
-    training_args.hub_token = TOKEN
-
+    training_args.hub_token = os.getenv("HF_TOKEN","<HF_TOKEN>")
+    print(training_args.hub_token)
     # 2. Setup logging
     logging.basicConfig(
         format="%(asctime)s - %(levelname)s - %(name)s - %(message)s",
@@ -126,8 +146,8 @@ def main():
     set_seed(training_args.seed)
 
     # 4. Load dataset
-    #raw_datasets = IterableDatasetDict() if data_args.streaming else DatasetDict()
-    raw_datasets = DatasetDict()
+    raw_datasets = IterableDatasetDict() if data_args.streaming else DatasetDict()
+    #raw_datasets = DatasetDict()
 
     if training_args.do_train:
         raw_datasets["train"] = load_maybe_streaming_dataset(
@@ -388,8 +408,7 @@ def main():
     # 14. Write Training Stats
     kwargs = {
         "finetuned_from": model_args.model_name_or_path,
-        "tasks": "automatic-speech-recognition",
-        "tags": "whisper-event",
+        "tasks": "automatic-speech-recognition"
     }
     if data_args.dataset_name is not None:
         kwargs["dataset_tags"] = data_args.dataset_name
