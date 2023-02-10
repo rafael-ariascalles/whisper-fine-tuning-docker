@@ -1,24 +1,24 @@
 model_name_or_path: openai/whisper-tiny
-dataset_name: mozilla-foundation/common_voice_11_0
-dataset_config_name: es
-language: spanish
-train_split_name: train+validation
+dataset_name: 
+dataset_config_name: en
+language: english
+train_split_name: train
 eval_split_name: test
-model_index_name: Whisper Small Spanish
+model_index_name: Whisper Cryptocurrency
 use_auth_token: true
 max_steps: 50
-output_dir: whisper-tiny-spanish-checkpoint
+output_dir: whisper-tiny-stakwork-crypto
 per_device_train_batch_size: 64
 per_device_eval_batch_size: 32
 logging_steps: 5
-learning_rate: 0.0000001
+learning_rate: 0.000001
 warmup_steps: 4
 save_strategy: steps
 save_steps: 50
 generation_max_length: 225
 length_column_name: input_length
 max_duration_in_seconds: 30
-text_column_name: sentence
+text_column_name: text
 freeze_feature_encoder: False
 report_to: tensorboard
 metric_for_best_model: wer
@@ -35,6 +35,6 @@ predict_with_generate: true
 do_normalize_eval: true
 streaming: true
 push_to_hub: true
-hub_model_id: whisper-tiny-spanish
+hub_model_id: test1
 #max_train_samples: 500
 #max_eval_samples: 10
