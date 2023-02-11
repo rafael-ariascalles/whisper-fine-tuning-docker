@@ -373,6 +373,27 @@ def main():
         callbacks=[ShuffleCallback()] if data_args.streaming else None,
     )
 
+
+    # 13. Evaluation
+    results = {}
+    if training_args.do_eval:
+        logger.info("********************")
+        logger.info("*** Evaluate *******")
+        logger.info("********************")
+        metrics = trainer.evaluate(
+            metric_key_prefix="eval",
+            max_length=training_args.generation_max_length,
+            num_beams=training_args.generation_num_beams,
+        )
+        #if data_args.max_eval_samples:
+        #    metrics["eval_samples"] = data_args.max_eval_samples
+        #trainer.log_metrics("eval", metrics)
+        #trainer.save_metrics("eval", metrics)
+        logger.info(metrics)
+        logger.info("********************")
+        logger.info("*** Evaluate end ***")
+        logger.info("********************")
+
     # 12. Training
     if training_args.do_train:
         checkpoint = None
