@@ -374,7 +374,7 @@ def main():
     )
 
 
-    # 13. Evaluation
+    # 11.1 Evaluation
     results = {}
     if training_args.do_eval:
         logger.info("********************")
@@ -394,7 +394,7 @@ def main():
         logger.info("*** Evaluate end ***")
         logger.info("********************")
 
-    # 12. Training
+    logger.info("# 12. Training #######################################################")
     if training_args.do_train:
         checkpoint = None
         if training_args.resume_from_checkpoint is not None:
@@ -411,7 +411,8 @@ def main():
         trainer.save_metrics("train", metrics)
         trainer.save_state()
 
-    # 13. Evaluation
+    
+    logger.info("# 13. Evaluation #######################################################")
     results = {}
     if training_args.do_eval:
         logger.info("*** Evaluate ***")
@@ -425,25 +426,31 @@ def main():
 
         trainer.log_metrics("eval", metrics)
         trainer.save_metrics("eval", metrics)
-
-    # 14. Write Training Stats
+        logger.info(metrics)
+        logger.info("*** Evaluate end ***")
+    
+    logger.info("# 14. Write Training Stats #######################################################")
+    
     kwargs = {
         "finetuned_from": model_args.model_name_or_path,
         "tasks": "automatic-speech-recognition"
     }
+
     if data_args.dataset_name is not None:
-        kwargs["dataset_tags"] = data_args.dataset_name
-        if data_args.dataset_config_name is not None:
-            kwargs["dataset"] = f"{data_args.dataset_name} {data_args.dataset_config_name}"
-        else:
-            kwargs["dataset"] = data_args.dataset_name
-        if "common_voice" in data_args.dataset_name:
-            kwargs["language"] = data_args.dataset_config_name[:2]
-        if model_args.model_index_name is not None:
-            kwargs["model_name"] = model_args.model_index_name
+        #kwargs["dataset_tags"] = data_args.dataset_name
+        #kwargs["dataset"] = data_args.dataset_name
+        kwargs["model_name"] = model_args.model_index_name
 
     if training_args.push_to_hub:
         trainer.push_to_hub(**kwargs)
+        
+        feature_extractor.save_pretrained(
+            training_args.output_dir
+            ,push_to_hub=training_args.push_to_hub
+            ,repo_id=training_args.hub_model_id
+            ,use_auth_token=training_args.hub_token if model_args.use_auth_token else None
+        )
+        
     else:
         trainer.create_model_card(**kwargs)
 
