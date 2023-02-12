@@ -19,7 +19,7 @@ sudo docker run -it --rm --gpus all hf python script/test.py
 ```
 
 ```bash
-sudo docker run --gpus all -v ~/cache:/root/.cache/ --env-file .env -it --rm --name trainer hf python script/run_training.py yaml/whisper-tiny.yaml
+sudo docker run --gpus all -v ~/cache:/root/.cache/ --env-file .env -it --rm --name trainer hf python script/run_training.py yaml/whisper-params.yaml
 ```
 
 or 
