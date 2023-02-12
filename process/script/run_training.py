@@ -442,6 +442,7 @@ def main():
         kwargs["model_name"] = model_args.model_index_name
 
     if training_args.push_to_hub:
+        
         trainer.push_to_hub(**kwargs)
         
         feature_extractor.save_pretrained(
@@ -450,7 +451,7 @@ def main():
             ,repo_id=training_args.hub_model_id
             ,use_auth_token=training_args.hub_token if model_args.use_auth_token else None
         )
-        
+
     else:
         trainer.create_model_card(**kwargs)
 
