@@ -8,16 +8,16 @@ model_index_name: Whisper-medium-BTC
 gradient_accumulation_steps: 1
 use_auth_token: true
 output_dir: whisper-tiny-stakwork-crypto
-max_steps: 2500
+max_steps: 2000
 per_device_train_batch_size: 32
 per_device_eval_batch_size: 16
-logging_steps: 100
-learning_rate: 0.0000008
-warmup_steps: 1000
+logging_steps: 50
+learning_rate: 0.00001
+warmup_steps: 800
 evaluation_strategy: steps
 save_strategy: steps
-save_steps: 100
-eval_steps: 100
+save_steps: 50
+eval_steps: 50
 save_total_limit: 6 
 generation_max_length: 425
 length_column_name: input_length
@@ -38,5 +38,4 @@ do_normalize_eval: true
 streaming: true
 push_to_hub: true
 hub_model_id: whisper-medium-BTCv1
-#max_train_samples: 500
-#max_eval_samples: 10
+# WER 6.9%
