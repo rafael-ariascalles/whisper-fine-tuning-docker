@@ -21,7 +21,7 @@ class ModelArguments:
     )
     cache_dir: Optional[str] = field(
         default=None,
-        metadata={"help": "Where to store the pretrained models downloaded from huggingface.co"},
+        metadata={"help": "Where to store the pretrained models downloaded from huggingface.co"}
     )
     use_fast_tokenizer: bool = field(
         default=True,
@@ -69,6 +69,10 @@ class ModelArguments:
     model_index_name: str = field(
         default=None, 
         metadata={"help": "Pretty name for the model card."}
+    )
+    model_dropout: Optional[float] = field(
+        default=None,
+        metadata={"help": "The dropout probability to use in the model."}
     )
 
 @dataclass

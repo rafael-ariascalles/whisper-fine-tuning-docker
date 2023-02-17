@@ -38,4 +38,5 @@ do_normalize_eval: true
 streaming: true
 push_to_hub: true
 hub_model_id: whisper-medium-BTCv1
+model_dropout: 0.05
 # WER 6.9%

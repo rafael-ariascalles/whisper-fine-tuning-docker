@@ -1,25 +1,3 @@
-#!/usr/bin/env python
-# coding=utf-8
-# Copyright 2022 The HuggingFace Team. All rights reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-"""
-Fine-tuning the library models for sequence to sequence speech recognition
-with 🤗 Datasets' streaming mode.
-"""
-# You can also adapt this script for your own sequence to sequence speech
-# recognition task. Pointers for this are left as comments.
-
 import logging
 import os
 import sys
@@ -202,8 +180,6 @@ def main():
     if training_args.gradient_checkpointing:
         config.update({"use_cache": False})
 
-    # With the configfile we can specify different parameters to customize the model.
-    #TODO: set the combination of parameters in the config file from discord
 
     feature_extractor = AutoFeatureExtractor.from_pretrained(
         model_args.feature_extractor_name if model_args.feature_extractor_name else model_args.model_name_or_path,
@@ -211,6 +187,7 @@ def main():
         revision=model_args.model_revision,
         use_auth_token=training_args.hub_token if model_args.use_auth_token else None,
     )
+    
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name if model_args.tokenizer_name else model_args.model_name_or_path,
         cache_dir=model_args.cache_dir,
@@ -234,6 +211,10 @@ def main():
 
     if model_args.freeze_encoder:
         model.freeze_encoder()
+    
+    # For Smaller datasets we can use Dropout max 0.1
+    if model_args.model_dropout is not None:
+        model.config.update({"dropout": model_args.model_dropout})
 
     if data_args.language is not None:
         # We only need to set the task id when the language is specified (i.e. in a multilingual setting)
@@ -242,6 +223,7 @@ def main():
     # 6. Resample speech dataset if necessary
     #Resamplig if necessary
     dataset_sampling_rate = next(iter(raw_datasets.values())).features[data_args.audio_column_name].sampling_rate
+
     if dataset_sampling_rate != feature_extractor.sampling_rate:
         raw_datasets = raw_datasets.cast_column(
             data_args.audio_column_name, datasets.features.Audio(sampling_rate=feature_extractor.sampling_rate)
@@ -318,9 +300,7 @@ def main():
 
     def compute_metrics(pred):
         pred_ids = pred.predictions
-
         pred.label_ids[pred.label_ids == -100] = tokenizer.pad_token_id
-
         pred_str = tokenizer.batch_decode(pred_ids, skip_special_tokens=True)
         # we do not want to group tokens when computing the metrics
         label_str = tokenizer.batch_decode(pred.label_ids, skip_special_tokens=True)
