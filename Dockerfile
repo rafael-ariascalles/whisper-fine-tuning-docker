@@ -1,8 +1,17 @@
 FROM python:3.10-slim-buster
 RUN apt update && apt install -y ffmpeg
 RUN apt-get install -y git-lfs
+
 COPY requirements.txt .
+
 RUN pip install -r requirements.txt
+
 ENV HF_TOKEN="<HF_AUTH_TOKEN>"
+ENV MLFLOW_EXPERIMENT_NAME="<EXPERIMENT_NAME>"
+ENV MLFLOW_FLATTEN_PARAMS=1
+ENV MLFLOW_TRACKING_URI="<MLFLOW_TRACKING_URI>"
+ENV MLFLOW_TRACKING_USERNAME="<MLFLOW_TRACKING_USERNAME>"
+ENV MLFLOW_TRACKING_PASSWORD="<MLFLOW_TRACKING_PASSWORD>"
+
 WORKDIR /process
 COPY process/ .

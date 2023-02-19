@@ -24,7 +24,7 @@ length_column_name: input_length
 max_duration_in_seconds: 30
 text_column_name: text
 freeze_feature_encoder: False
-report_to: tensorboard
+report_to: all
 metric_for_best_model: wer
 greater_is_better: False
 gradient_checkpointing: true

@@ -31,6 +31,8 @@ from transformers.utils import check_min_version
 from transformers.utils.versions import require_version
 from arguments import ModelArguments,DataTrainingArguments 
 from collator import DataCollatorSpeechSeq2SeqWithPadding
+import mlflow
+import tensorboard
 
 # Will error if the minimal version of Transformers is not installed. Remove at your own risks.
 check_min_version("4.25.0.dev0")
@@ -434,6 +436,8 @@ def main():
 
     else:
         trainer.create_model_card(**kwargs)
+
+    mlflow.end_run()
 
     return results
 
