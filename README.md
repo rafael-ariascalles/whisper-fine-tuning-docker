@@ -28,6 +28,13 @@ or
 sudo docker run --gpus all -v ~/cache:/root/.cache/ --env-file .env -it --rm --name trainer -d hf bash
 ```
 
+or 
+
+```bash
+sudo docker run --gpus all -v ~/cache:/root/.cache/ --env-file .env -it --rm --name trainer hf python script/run_training_track_with_mlflow.py yaml/whisper-params.yaml
+
+```
+
 ```bash
 sudo docker exec -it trainer python script/run_training.py yaml/whisper-params.yaml
 ```
