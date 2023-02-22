@@ -7,7 +7,18 @@ Implementation of the finetuningprocess into a Docker container
 create
 ```bash
 echo "HF_TOKEN=
-" >> .env
+
+MLFLOW_EXPERIMENT_NAME=
+MLFLOW_FLATTEN_PARAMS=
+MLFLOW_TRACKING_URI=
+MLFLOW_TRACKING_USERNAME=
+MLFLOW_TRACKING_PASSWORD=
+
+WANDB_API_KEY=
+WANDB_PROJECT=
+WANDB_NAME=
+WANDB_NOTES=
+" > .env
 ```
 
 ```bash
